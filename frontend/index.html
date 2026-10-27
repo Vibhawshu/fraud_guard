@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FraudGuard — AI-Powered SMS & Email Detection</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="bg-glow glow-1"></div>
+    <div class="bg-glow glow-2"></div>
+
+    <div class="app">
+
+        <!-- ================= SIDEBAR ================= -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo">🛡️</div>
+                <div>
+                    <div class="brand-name">FraudGuard</div>
+                    <div class="brand-tag">AI Detection</div>
+                </div>
+            </div>
+
+            <nav class="nav">
+                <div class="nav-item active" data-view="analyzer" onclick="switchView('analyzer')">
+                    <span class="nav-icon">⚡</span>
+                    <span>Analyzer</span>
+                </div>
+                <div class="nav-item" data-view="history" onclick="switchView('history')">
+                    <span class="nav-icon">📊</span>
+                    <span>History</span>
+                    <span id="history-count" class="nav-badge hidden">0</span>
+                </div>
+                <div class="nav-item" onclick="showModelInfo()">
+                    <span class="nav-icon">🧠</span>
+                    <span>Model Info</span>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="status-dot"></div>
+                <span id="api-status">Checking API...</span>
+            </div>
+        </aside>
+
+        <!-- ================= MAIN ================= -->
+        <main class="main">
+
+            <!-- ========== ANALYZER VIEW ========== -->
+            <div id="view-analyzer">
+
+                <header class="header">
+                    <div>
+                        <h1>Fraud Detection Analyzer</h1>
+                        <p class="subtitle">Paste a message below. Our AI will analyze it for fraud patterns and explain its reasoning.</p>
+                    </div>
+                    <div class="header-badge">
+                        <span class="pulse"></span>
+                        Real-time
+                    </div>
+                </header>
+
+                <div class="type-selector">
+                    <button class="type-btn active" data-type="sms" onclick="setType('sms')">
+                        <span>📱</span> SMS
+                    </button>
+                    <button class="type-btn" data-type="email" onclick="setType('email')">
+                        <span>📧</span> Email
+                    </button>
+                </div>
+
+                <div class="input-card">
+                    <div class="input-header">
+                        <label for="input-text">Message Content</label>
+                        <span class="char-count"><span id="char-count">0</span> chars</span>
+                    </div>
+                    <textarea
+                        id="input-text"
+                        placeholder="Paste your SMS message or email body here..."
+                        oninput="updateCharCount()"
+                        onkeydown="handleKeydown(event)"></textarea>
+                    <div class="input-footer">
+                        <div class="hint">💡 Tip: Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to analyze</div>
+                        <button id="analyze-btn" onclick="analyze()">
+                            <span class="btn-text">Analyze</span>
+                            <span class="btn-arrow">→</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="loading" class="loading-card hidden">
+                    <div class="loading-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <p>Analyzing message patterns...</p>
+                </div>
+
+                <div id="result" class="result-card hidden">
+                    <div class="result-header">
+                        <div>
+                            <div id="verdict-label" class="verdict-label"></div>
+                            <div id="verdict-sub" class="verdict-sub"></div>
+                        </div>
+                        <div class="gauge-wrap">
+                            <svg class="gauge" viewBox="0 0 100 60">
+                                <path class="gauge-bg" d="M 10 50 A 40 40 0 0 1 90 50" />
+                                <path id="gauge-fill" class="gauge-fill" d="M 10 50 A 40 40 0 0 1 90 50" />
+                            </svg>
+                            <div class="gauge-value">
+                                <span id="confidence-num">0</span><span class="pct">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result-body">
+                        <div class="section">
+                            <div class="section-title">Highlighted Message</div>
+                            <div id="highlighted-text" class="highlighted-text"></div>
+                        </div>
+                        <div class="section">
+                            <div class="section-title">Key Influencing Terms</div>
+                            <div id="token-chips" class="token-chips"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ========== HISTORY VIEW ========== -->
+            <div id="view-history" class="hidden">
+
+                <header class="header">
+                    <div>
+                        <h1>Analysis History</h1>
+                        <p class="subtitle">Click any row to see the full reasoning behind the verdict.</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="ghost-btn" onclick="exportHistory()">
+                            <span>⬇</span> Export CSV
+                        </button>
+                        <button class="ghost-btn danger" onclick="clearHistory()">
+                            <span>🗑</span> Clear
+                        </button>
+                    </div>
+                </header>
+
+                <div class="stats-bar">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Analyses</div>
+                        <div class="stat-value" id="stat-total">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Fraud Detected</div>
+                        <div class="stat-value danger" id="stat-fraud">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Fraud Rate</div>
+                        <div class="stat-value" id="stat-rate">0%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Last Scan</div>
+                        <div class="stat-value small" id="stat-last">—</div>
+                    </div>
+                </div>
+
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all" onclick="setFilter('all')">All</button>
+                    <button class="filter-tab" data-filter="fraud" onclick="setFilter('fraud')">Fraud only</button>
+                    <button class="filter-tab" data-filter="safe" onclick="setFilter('safe')">Safe only</button>
+                    <button class="filter-tab" data-filter="gmail" onclick="setFilter('gmail')">Gmail</button>
+                </div>
+
+                <div class="history-table-wrap">
+                    <div id="history-empty" class="empty-state hidden">
+                        <div class="empty-icon">📭</div>
+                        <div class="empty-title">No analyses yet</div>
+                        <div class="empty-sub">Run an analysis or scan Gmail to populate history.</div>
+                    </div>
+                    <table id="history-table" class="history-table hidden">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">Type</th>
+                                <th style="width: 220px;">Message</th>
+                                <th style="width: 130px;">Verdict</th>
+                                <th style="width: 120px;">Confidence</th>
+                                <th>Key Signals</th>
+                                <th style="width: 130px;">Time</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-tbody"></tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ================= MODAL ================= -->
+    <div id="modal" class="modal hidden" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div id="modal-title" class="modal-title">Analysis Detail</div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div id="modal-body" class="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
